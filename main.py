@@ -1,9 +1,10 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from time import sleep
 import undetected_chromedriver as uc
 import os
 import random
-from time import sleep
+import json
 
 
 def main():
@@ -32,7 +33,7 @@ def main():
                 search_string.send_keys(letter)
                 sleep(random.uniform(0.28, 0.52))
             search_string.send_keys(Keys.ENTER)
-            sleep(8)
+            sleep(100)
    
     except BaseException as err:
         print(err)
@@ -50,7 +51,21 @@ def res_processing(event_data):
         if head_res['status'] == 200 and 'json' in head_res['mimeType']:
             res_id = log['params']['requestId']
             res = driver.execute_cdp_cmd('Network.getResponseBody',  {'requestId': res_id})
-            print(res, end='\n\n')
+
+            # Получаем огромное тело ответа в виде обычной строки, но написанной в формате json
+            res_body = res.get('body', '')
+            if res_body:
+                # Делаем из этой строки обычный Python словарь
+                data = json.loads(res_body)
+                components = data.get('layout', [])
+
+                if len(components) == 2 and components[1].get('component', '') == 'tileGridDesktop':
+                    widget_states = data['widgetStates']
+
+                    for key, value in widget_states.items():
+                        if key.startswith('tileGridDesktop'):
+                            clean_products_data = json.loads(value)
+                            print(clean_products_data)
 
 
 if __name__ == '__main__':
